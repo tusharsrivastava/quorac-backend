@@ -6,7 +6,7 @@ export const databaseProviders = [
     provide: injectedConsts.DATABASE_CONNECTION,
     useFactory: async () =>
       await createConnection({
-        type: 'mysql',
+        type: process.env.DB_TYPE as any,
         host: process.env.DB_HOST,
         port: process.env.DB_PORT as unknown as number,
         username: process.env.DB_USER,
