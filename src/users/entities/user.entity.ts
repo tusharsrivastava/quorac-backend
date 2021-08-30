@@ -1,9 +1,12 @@
 import {
+  BaseEntity,
   BeforeInsert,
   BeforeUpdate,
   Column,
+  CreateDateColumn,
   Entity,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { SALT_OR_ROUNDS } from 'src/global.constants';
@@ -11,7 +14,7 @@ import { SALT_OR_ROUNDS } from 'src/global.constants';
 const saltOrRounds = SALT_OR_ROUNDS;
 
 @Entity()
-export class User {
+export class User extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -35,6 +38,12 @@ export class User {
 
   @Column({ default: false })
   isVerified: boolean;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 
   async isValidPassword(plainPassword: string) {
     return await bcrypt.compare(plainPassword, this.password);
