@@ -3,7 +3,7 @@ import { REQUEST } from '@nestjs/core';
 import { Request } from 'express';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UsersService } from 'src/users/users.service';
-import { Repository } from 'typeorm';
+import { MoreThan, Not, Repository } from 'typeorm';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Post, PostType } from './entities/post.entity';
@@ -35,36 +35,111 @@ export class PostsService {
     return this.repo.save(post);
   }
 
-  async findAll() {
-    return await this.repo.find();
+  async findAll({ page = 1, limit = 10 } = {}) {
+    const [result, total] = await this.repo.findAndCount({
+      relations: ['parent'],
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return {
+      data: result,
+      count: total,
+    };
+  }
+
+  async findTrending({ page = 1, limit = 10 } = {}) {
+    const [result, total] = await this.repo.findAndCount({
+      relations: ['parent'],
+      where: {
+        type: Not(PostType.QUESTION),
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      order: {
+        numLikes: 'DESC',
+        upvotes: 'DESC',
+      },
+    });
+
+    return {
+      data: result,
+      count: total,
+    };
+  }
+
+  async findTrendingByType(type: PostType, { page = 1, limit = 10 } = {}) {
+    const [result, total] = await this.repo.findAndCount({
+      relations: ['parent'],
+      where: {
+        type,
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      order: {
+        numLikes: 'DESC',
+        upvotes: 'DESC',
+      },
+    });
+
+    return {
+      data: result,
+      count: total,
+    };
   }
 
   async findOne(id: string) {
-    return await this.repo.findOneOrFail(id);
+    return await this.repo.findOneOrFail(id, {
+      relations: ['parent', 'createdBy'],
+    });
   }
 
-  async findAssociated(postId: string) {
+  async findAssociated(postId: string, { page = 1, limit = 10 } = {}) {
     const post = await this.findOne(postId);
 
-    return await this.repo.find({
+    const [result, total] = await this.repo.findAndCount({
+      relations: ['parent'],
       where: {
         parent: post,
       },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    return {
+      data: result,
+      count: total,
+    };
   }
 
-  async findByType(type: PostType) {
-    return await this.repo.find({
+  async findByType(type: PostType, { page = 1, limit = 10 } = {}) {
+    const [result, total] = await this.repo.findAndCount({
+      relations: ['parent'],
       where: { type },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    return {
+      data: result,
+      count: total,
+    };
   }
 
-  async findByUser() {
+  async findByUser({ page = 1, limit = 10 } = {}) {
     const user = await this.currentUser;
 
-    return await this.repo.find({
+    const [result, total] = await this.repo.findAndCount({
+      relations: ['parent'],
       where: { createdBy: user },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    return {
+      data: result,
+      count: total,
+    };
   }
 
   async update(id: string, updatePostDto: UpdatePostDto) {
@@ -75,6 +150,24 @@ export class PostsService {
 
   async remove(id: string) {
     return await this.repo.delete(id);
+  }
+
+  async addAnswer(postId: string, createPostDto: CreatePostDto) {
+    const post = await this.findOne(postId);
+
+    if (post.type !== PostType.QUESTION) {
+      throw new Error('Post is not a question');
+    }
+
+    const answer = this.repo.create({
+      content: createPostDto.content,
+      type: PostType.ANSWER,
+      parent: post,
+    });
+
+    answer.createdBy = await this.currentUser;
+
+    return await this.repo.save(answer);
   }
 
   async addComment(postId: string, createCommentDto: CreateCommentDto) {
@@ -89,13 +182,20 @@ export class PostsService {
     return await this.commentRepo.save(comment);
   }
 
-  async findComments(postId: string) {
+  async findComments(postId: string, { page = 1, limit = 10 } = {}) {
     const post = await this.findOne(postId);
 
-    return await this.commentRepo.find({
+    const [result, total] = await this.commentRepo.findAndCount({
       where: {
         post,
       },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    return {
+      data: result,
+      count: total,
+    };
   }
 }

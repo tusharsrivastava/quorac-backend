@@ -1,4 +1,5 @@
 import {
+  AfterLoad,
   Column,
   CreateDateColumn,
   Entity,
@@ -48,6 +49,9 @@ export class Post {
   numComments: number;
 
   @Column({ default: 0 })
+  numAssociatedPosts: number;
+
+  @Column({ default: 0 })
   numLikes: number;
 
   @OneToMany(() => Post, (post) => post.parent)
@@ -61,4 +65,14 @@ export class Post {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  // Additional Field for Display
+  title: string;
+
+  @AfterLoad()
+  setJsonProps() {
+    if (this.type === PostType.ANSWER) {
+      this.title = this.parent?.content;
+    }
+  }
 }

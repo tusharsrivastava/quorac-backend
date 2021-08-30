@@ -23,18 +23,27 @@ export class UsersService {
     username: string,
     password: string,
   ): Promise<User | undefined> {
-    const user = await this.findOneByUsername(username);
+    const user = await this.findOneByUsername(username, true);
     if (user) {
       const isMatch = await user.isValidPassword(password);
 
       if (isMatch) {
-        return user;
+        return await this.findOneById(user.id);
       }
     }
     return undefined;
   }
 
-  async findOneByUsername(username: string): Promise<User | undefined> {
+  async findOneByUsername(
+    username: string,
+    fetchPassword = false,
+  ): Promise<User | undefined> {
+    if (fetchPassword) {
+      return this.repo.findOneOrFail({
+        select: ['id', 'username', 'password'],
+        where: { username },
+      });
+    }
     return this.repo.findOneOrFail({
       username: username,
     });

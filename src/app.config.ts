@@ -65,6 +65,7 @@ export class AppConfig {
           database: configService.get<string>('DB_SCHEMA'),
 
           entities: ['dist/**/*.entity.js'],
+          subscribers: ['dist/**/*.subscriber.js'],
           migrations: ['dist/migrations/*.js'],
           cli: {
             migrationsDir: 'dist/migrations',
@@ -87,6 +88,7 @@ export class AppConfig {
       database: this.env.DB_SCHEMA,
 
       entities: ['dist/**/*.entity.js'],
+      subscribers: ['dist/**/*.subscriber.js'],
       migrations: ['dist/migrations/*.js'],
       cli: {
         migrationsDir: 'src/migrations',
