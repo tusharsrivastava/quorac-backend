@@ -21,7 +21,7 @@ import { PostsModule } from './posts/posts.module';
       isGlobal: true,
       validate: AppConfig.validateConfig,
     }),
-    TypeOrmModule.forRoot(AppConfig.getTypeOrmConfig()),
+    TypeOrmModule.forRootAsync(AppConfig.getTypeOrmConfigAsync()),
     AuthModule,
     UsersModule,
     CategoriesModule,

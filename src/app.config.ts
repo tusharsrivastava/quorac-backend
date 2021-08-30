@@ -1,5 +1,8 @@
 import { plainToClass } from 'class-transformer';
-import { TypeOrmModuleOptions } from '@nestjs/typeorm';
+import {
+  TypeOrmModuleAsyncOptions,
+  TypeOrmModuleOptions,
+} from '@nestjs/typeorm';
 import {
   IsNumber,
   IsIn,
@@ -7,13 +10,19 @@ import {
   IsString,
   IsBoolean,
 } from 'class-validator';
+import { ConfigService } from '@nestjs/config';
 
 const enviroments = ['development', 'test', 'production'] as const;
+const databases = ['mysql', 'mariadb', 'postgres', 'mssql'] as const;
+type Database = typeof databases[number];
 type Environment = typeof enviroments[number];
 
 class EnvironmentVariables {
   @IsIn(enviroments)
   NODE_ENV: Environment;
+
+  @IsIn(databases)
+  DB_TYPE: Database;
 
   @IsString()
   DB_HOST: string;
@@ -41,9 +50,35 @@ export class AppConfig {
     });
   }
 
+  public static getTypeOrmConfigAsync(): TypeOrmModuleAsyncOptions {
+    return <TypeOrmModuleAsyncOptions>{
+      imports: [ConfigService],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => {
+        return {
+          type: configService.get<Database>('DB_TYPE'),
+          host: configService.get<string>('DB_HOST'),
+          port: configService.get<number>('DB_PORT'),
+
+          username: configService.get<string>('DB_USER'),
+          password: configService.get<string>('DB_PASSWORD'),
+          database: configService.get<string>('DB_SCHEMA'),
+
+          entities: ['dist/**/*.entity.js'],
+          migrations: ['dist/migrations/*.js'],
+          cli: {
+            migrationsDir: 'dist/migrations',
+          },
+          synchronize: true,
+          logging: configService.get<boolean>('DB_LOGGING'),
+        };
+      },
+    };
+  }
+
   public static getTypeOrmConfig(): TypeOrmModuleOptions {
     return {
-      type: 'mysql',
+      type: this.env.DB_TYPE,
       host: this.env.DB_HOST,
       port: this.env.DB_PORT,
 
