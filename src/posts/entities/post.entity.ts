@@ -28,7 +28,10 @@ export class Post {
   @Column()
   type: PostType;
 
-  @Column('text')
+  @Column({ default: 'Untitled Post' })
+  title: string;
+
+  @Column('text', { nullable: true })
   content: string;
 
   @ManyToOne(() => Post, { nullable: true })
@@ -66,13 +69,15 @@ export class Post {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  // Additional Field for Display
-  title: string;
-
-  @AfterLoad()
-  setJsonProps() {
-    if (this.type === PostType.ANSWER) {
-      this.title = this.parent?.content;
-    }
-  }
+  // @AfterLoad()
+  // setJsonProps() {
+  //   if (this.type === PostType.ANSWER) {
+  //     this.title = this.parent?.content;
+  //   } else if (this.type === PostType.QUESTION) {
+  //     this.title = this.content;
+  //     if (this.parent === null) {
+  //       this.content = '';
+  //     }
+  //   }
+  // }
 }

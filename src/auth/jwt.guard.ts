@@ -1,15 +1,30 @@
 import {
   ExecutionContext,
   Injectable,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
+import { Reflector } from '@nestjs/core';
+import { ALLOW_ANONYMOUS_META_KEY } from './auth.decorators';
+import { AuthGuard, AuthModuleOptions } from '@nestjs/passport';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
+  constructor(
+    @Optional() protected readonly options: AuthModuleOptions,
+    private readonly reflector: Reflector,
+  ) {
+    super(options);
+  }
+
   canActivate(context: ExecutionContext) {
-    // Add your custom authentication logic here
-    // for example, call super.logIn(request) to establish a session.
+    const isAnonymousAllowed = this.reflector.get<boolean>(
+      ALLOW_ANONYMOUS_META_KEY,
+      context.getHandler(),
+    );
+    if (isAnonymousAllowed) {
+      return true;
+    }
     return super.canActivate(context);
   }
 

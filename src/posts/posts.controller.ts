@@ -15,12 +15,14 @@ import { UpdatePostDto } from './dto/update-post.dto';
 import { PostType } from './entities/post.entity';
 import { JwtAuthGuard } from 'src/auth/jwt.guard';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { AllowAnonymous } from 'src/auth/auth.decorators';
 
 @Controller('posts')
 export class PostsController {
   constructor(private readonly service: PostsService) {}
 
   @UseGuards(JwtAuthGuard)
+  @AllowAnonymous()
   @Post()
   create(@Body() createPostDto: CreatePostDto) {
     return this.service.create(createPostDto);
@@ -66,6 +68,7 @@ export class PostsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @AllowAnonymous()
   @Post(':id/answers')
   addAnswer(@Param('id') id: string, @Body() createPostDto: CreatePostDto) {
     return this.service.addAnswer(id, createPostDto);
@@ -102,6 +105,7 @@ export class PostsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @AllowAnonymous()
   @Post(':id/comments')
   addComment(
     @Param('id') postId: string,

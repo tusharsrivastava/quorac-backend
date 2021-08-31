@@ -3,12 +3,13 @@ import { REQUEST } from '@nestjs/core';
 import { Request } from 'express';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UsersService } from 'src/users/users.service';
-import { MoreThan, Not, Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Post, PostType } from './entities/post.entity';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { Comment } from './entities/comment.entity';
+import { AuthService } from 'src/auth/auth.service';
 
 @Injectable({ scope: Scope.REQUEST })
 export class PostsService {
@@ -20,12 +21,16 @@ export class PostsService {
     @Inject(REQUEST)
     private readonly req: Request,
     private readonly userService: UsersService,
+    private readonly authService: AuthService,
   ) {}
 
   get currentUser() {
-    const { id } = (this.req as any).user;
-
-    return this.userService.findOneById(id);
+    try {
+      const { id } = (this.req as any).user;
+      return this.userService.findOneById(id);
+    } catch (e) {
+      return this.authService.AnonymousUser;
+    }
   }
 
   async create(createPostDto: CreatePostDto) {
@@ -40,6 +45,9 @@ export class PostsService {
       relations: ['parent'],
       skip: (page - 1) * limit,
       take: limit,
+      order: {
+        createdAt: 'DESC',
+      },
     });
 
     return {
@@ -59,6 +67,7 @@ export class PostsService {
       order: {
         numLikes: 'DESC',
         upvotes: 'DESC',
+        createdAt: 'DESC',
       },
     });
 
@@ -69,16 +78,31 @@ export class PostsService {
   }
 
   async findTrendingByType(type: PostType, { page = 1, limit = 10 } = {}) {
+    let whereClause: any = {
+      type,
+    };
+
+    if (type === PostType.ANSWER) {
+      whereClause = [
+        {
+          type: PostType.ANSWER,
+        },
+        {
+          type: PostType.QUESTION,
+          numAssociatedPosts: 0,
+        },
+      ];
+    }
+
     const [result, total] = await this.repo.findAndCount({
       relations: ['parent'],
-      where: {
-        type,
-      },
+      where: whereClause,
       skip: (page - 1) * limit,
       take: limit,
       order: {
         numLikes: 'DESC',
         upvotes: 'DESC',
+        createdAt: 'DESC',
       },
     });
 
@@ -104,6 +128,9 @@ export class PostsService {
       },
       skip: (page - 1) * limit,
       take: limit,
+      order: {
+        createdAt: 'DESC',
+      },
     });
 
     return {
@@ -113,11 +140,30 @@ export class PostsService {
   }
 
   async findByType(type: PostType, { page = 1, limit = 10 } = {}) {
+    let whereClause: any = {
+      type,
+    };
+
+    if (type === PostType.ANSWER) {
+      whereClause = [
+        {
+          type: PostType.ANSWER,
+        },
+        {
+          type: PostType.QUESTION,
+          numAssociatedPosts: 0,
+        },
+      ];
+    }
+
     const [result, total] = await this.repo.findAndCount({
       relations: ['parent'],
-      where: { type },
+      where: whereClause,
       skip: (page - 1) * limit,
       take: limit,
+      order: {
+        createdAt: 'DESC',
+      },
     });
 
     return {
@@ -134,6 +180,9 @@ export class PostsService {
       where: { createdBy: user },
       skip: (page - 1) * limit,
       take: limit,
+      order: {
+        createdAt: 'DESC',
+      },
     });
 
     return {
@@ -160,6 +209,7 @@ export class PostsService {
     }
 
     const answer = this.repo.create({
+      title: post.title,
       content: createPostDto.content,
       type: PostType.ANSWER,
       parent: post,
@@ -191,6 +241,9 @@ export class PostsService {
       },
       skip: (page - 1) * limit,
       take: limit,
+      order: {
+        createdAt: 'DESC',
+      },
     });
 
     return {

@@ -6,10 +6,20 @@ import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class AuthService {
+  private anonymousUser;
+
   constructor(
     private readonly userService: UsersService,
     private readonly jwtService: JwtService,
-  ) {}
+  ) {
+    this.getAnonymousUser().then((user) => {
+      this.anonymousUser = user;
+    });
+  }
+
+  get AnonymousUser() {
+    return this.anonymousUser;
+  }
 
   async authenticate(
     username: string,
@@ -44,5 +54,21 @@ export class AuthService {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...user } = await this.userService.findOneById(userId);
     return user;
+  }
+
+  private async getAnonymousUser() {
+    let anonymousUser = null;
+    try {
+      anonymousUser = await this.userService.findOneByUsername('anonymous');
+    } catch (error) {
+      // User not found let's create it
+      anonymousUser = await this.userService.createOne(<CreateUserDto>{
+        username: 'anonymous',
+        password: 'anonymous',
+        firstName: 'Anonymous',
+        lastName: 'User',
+      });
+    }
+    return anonymousUser;
   }
 }
