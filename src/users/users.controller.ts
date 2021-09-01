@@ -3,6 +3,7 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  Param,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -11,11 +12,11 @@ import { UserDto } from './dto/user.dto';
 import { UsersService } from './users.service';
 
 @Controller('users')
-@UseGuards(JwtAuthGuard)
 export class UsersController {
   constructor(private userService: UsersService) {}
 
   @Get()
+  @UseGuards(JwtAuthGuard)
   async profile(@Request() req): Promise<UserDto | undefined> {
     try {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -26,5 +27,10 @@ export class UsersController {
     } catch {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
+  }
+
+  @Get(':username')
+  async profileByUsername(@Param('username') username: string) {
+    return await this.userService.findOneByUsername(username);
   }
 }

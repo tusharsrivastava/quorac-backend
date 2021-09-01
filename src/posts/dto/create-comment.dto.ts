@@ -1,4 +1,4 @@
 export class CreateCommentDto {
-  postId: number;
+  postId?: number;
   content: string;
 }
