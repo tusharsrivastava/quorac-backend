@@ -13,7 +13,7 @@ import { Post } from './post.entity';
 @Entity()
 export class Comment {
   @PrimaryGeneratedColumn('uuid')
-  id: number;
+  id: string;
 
   @Column('text')
   content: string;
@@ -36,4 +36,7 @@ export class Comment {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  hasUpvoted = false;
+  hasDownvoted = false;
 }

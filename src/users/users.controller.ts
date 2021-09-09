@@ -19,6 +19,7 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   async profile(@Request() req): Promise<UserDto | undefined> {
     try {
+      console.log('profile', req.user);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...user } = await this.userService.findOneByUsername(
         req.user.username,

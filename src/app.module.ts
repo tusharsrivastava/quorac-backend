@@ -1,7 +1,8 @@
 import {
-  MiddlewareConsumer,
+  // MiddlewareConsumer,
   Module,
-  NestModule,
+  // NestModule,
+  // RequestMethod,
   // RequestMethod,
 } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
@@ -14,6 +15,7 @@ import { CategoriesModule } from './categories/categories.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppConfig } from './app.config';
 import { PostsModule } from './posts/posts.module';
+// import { PreauthMiddleware } from './auth/preauth.middleware';
 
 @Module({
   imports: [
@@ -30,12 +32,11 @@ import { PostsModule } from './posts/posts.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule implements NestModule {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  configure(consumer: MiddlewareConsumer) {
-    // consumer.apply(PreauthMiddleware).forRoutes({
-    //   path: '*',
-    //   method: RequestMethod.ALL,
-    // });
-  }
+export class AppModule {
+  // configure(consumer: MiddlewareConsumer) {
+  //   consumer.apply(PreauthMiddleware).forRoutes({
+  //     path: '*',
+  //     method: RequestMethod.ALL,
+  //   });
+  // }
 }

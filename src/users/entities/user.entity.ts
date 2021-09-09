@@ -30,6 +30,18 @@ export class User extends BaseEntity {
   @Column({ type: 'varchar', nullable: true, default: null })
   profileThumbnail: string;
 
+  @Column({ default: 1 })
+  level: number;
+
+  @Column({ type: 'varchar', length: 300, nullable: true, default: null })
+  description: string;
+
+  @Column({ default: 0 })
+  followersCount: number;
+
+  @Column({ default: 0 })
+  followingCount: number;
+
   @Column()
   firstName: string;
 

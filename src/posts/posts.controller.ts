@@ -16,6 +16,7 @@ import { PostType } from './entities/post.entity';
 import { JwtAuthGuard } from 'src/auth/jwt.guard';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { AllowAnonymous } from 'src/auth/auth.decorators';
+import { ActionType } from './post.enums';
 
 @Controller('posts')
 export class PostsController {
@@ -56,10 +57,17 @@ export class PostsController {
   @Get('type/:type')
   findByType(
     @Param('type') type: PostType,
+    @Query('category') category: string,
+    @Query('subcategories') subcategories: string,
     @Query('page') page: number,
     @Query('limit') limit: number,
   ) {
-    return this.service.findByType(type, { page, limit });
+    return this.service.findByType(type, {
+      page,
+      limit,
+      category,
+      subcategories: subcategories ? subcategories.split(',') : [],
+    });
   }
 
   @Get(':id')
@@ -72,6 +80,18 @@ export class PostsController {
   @Post(':id/answers')
   addAnswer(@Param('id') id: string, @Body() createPostDto: CreatePostDto) {
     return this.service.addAnswer(id, createPostDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/upvote')
+  async upvotePost(@Param('id') postId) {
+    return await this.service.togglePostAction(postId, ActionType.UPVOTE);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/downvote')
+  async downvotePost(@Param('id') postId) {
+    return await this.service.togglePostAction(postId, ActionType.DOWNVOTE);
   }
 
   @Get(':id/associated')
@@ -105,12 +125,26 @@ export class PostsController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @AllowAnonymous()
   @Post(':id/comments')
   addComment(
     @Param('id') postId: string,
     @Body() commentDto: CreateCommentDto,
   ) {
     return this.service.addComment(postId, commentDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':pid/comments/:id/upvote')
+  async upvoteComment(@Param('id') commentId) {
+    return await this.service.toggleCommentAction(commentId, ActionType.UPVOTE);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':pid/comments/:id/downvote')
+  async downvoteComment(@Param('id') commentId) {
+    return await this.service.toggleCommentAction(
+      commentId,
+      ActionType.DOWNVOTE,
+    );
   }
 }

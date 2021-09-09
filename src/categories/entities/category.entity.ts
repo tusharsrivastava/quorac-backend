@@ -1,4 +1,6 @@
+import slugify from 'slugify';
 import {
+  BeforeInsert,
   Column,
   CreateDateColumn,
   Entity,
@@ -30,4 +32,11 @@ export class Category {
 
   @OneToMany(() => SubCategory, (subcat) => subcat.category)
   subCategories: SubCategory[];
+
+  @BeforeInsert()
+  updateKey() {
+    if (this.key === null || this.key === '') {
+      this.key = slugify(this.name);
+    }
+  }
 }

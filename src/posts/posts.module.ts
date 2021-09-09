@@ -6,9 +6,15 @@ import { Post } from './entities/post.entity';
 import { Comment } from './entities/comment.entity';
 import { UsersModule } from 'src/users/users.module';
 import { AuthModule } from 'src/auth/auth.module';
+import { PostAction } from './entities/post.action.entity';
+import { CommentAction } from './entities/comment.action.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Post, Comment]), UsersModule, AuthModule],
+  imports: [
+    TypeOrmModule.forFeature([Post, Comment, PostAction, CommentAction]),
+    UsersModule,
+    AuthModule,
+  ],
   controllers: [PostsController],
   providers: [PostsService],
   exports: [PostsService],

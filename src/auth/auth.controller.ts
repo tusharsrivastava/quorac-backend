@@ -13,6 +13,7 @@ import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { UserDto } from 'src/users/dto/user.dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { AuthService } from './auth.service';
+import { FirebaseAuthGuard } from './firebase-auth.guard';
 import { LocalAuthGuard } from './local.guard';
 
 @Controller('auth')
@@ -24,11 +25,14 @@ export class AuthController {
     return await this.authService.register(userDto);
   }
 
-  @UseGuards(LocalAuthGuard)
+  @UseGuards(LocalAuthGuard, FirebaseAuthGuard)
   @Post('login')
   @HttpCode(200)
   async login(@Request() req) {
     try {
+      if (req.user && req.user.isSocial) {
+        return await this.authService.loginOrRegister(req.user);
+      }
       return this.authService.login(req.user);
     } catch {
       throw new HttpException('Invalid Credentials', HttpStatus.NOT_FOUND);

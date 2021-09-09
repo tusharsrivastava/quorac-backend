@@ -37,6 +37,29 @@ export class AuthService {
     return undefined;
   }
 
+  async loginOrRegister(user: any) {
+    let localUser;
+    try {
+      const username = user.username || user.email.split('@')[0];
+      localUser = await this.userService.findOneByUsername(username);
+    } catch (error) {
+      // User not found let's create it
+      const firstName = user.firstName || user.name.split(' ')[0];
+      const lastName = user.lastName || user.name.split(' ')[1];
+
+      localUser = await this.register(<CreateUserDto>{
+        username: user.username || user.email.split('@')[0],
+        password: user.password || '',
+        firstName: firstName,
+        lastName: lastName,
+        email: user.email,
+        profileThumbnail: user.picture,
+      });
+    }
+
+    return await this.login(localUser);
+  }
+
   async login(user: any) {
     const payload = { username: user.username, sub: user.id };
     return {

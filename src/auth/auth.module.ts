@@ -7,6 +7,7 @@ import { jwtConstants } from 'src/global.constants';
 import { JwtStrategy } from './jwt.strategy';
 import { LocalStrategy } from './local.strategy';
 import { AuthController } from './auth.controller';
+import { FirebaseAuthStrategy } from './firebase-auth.strategy';
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { AuthController } from './auth.controller';
       },
     }),
   ],
-  providers: [AuthService, LocalStrategy, JwtStrategy],
+  providers: [AuthService, LocalStrategy, JwtStrategy, FirebaseAuthStrategy],
   exports: [AuthService],
   controllers: [AuthController],
 })

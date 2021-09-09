@@ -4,6 +4,8 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -11,6 +13,8 @@ import {
 } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { Comment } from './comment.entity';
+import { Category } from 'src/categories/entities/category.entity';
+import { SubCategory } from 'src/categories/entities/subcategory.entity';
 
 export enum PostType {
   ARTICLE = 'article',
@@ -33,6 +37,14 @@ export class Post {
 
   @Column('text', { nullable: true })
   content: string;
+
+  @ManyToOne(() => Category, { nullable: true })
+  @JoinColumn()
+  category: Category;
+
+  @ManyToMany(() => SubCategory, { cascade: ['insert', 'update'] })
+  @JoinTable()
+  subcategories: SubCategory[];
 
   @ManyToOne(() => Post, { nullable: true })
   @JoinColumn()
@@ -69,15 +81,11 @@ export class Post {
   @UpdateDateColumn()
   updatedAt: Date;
 
+  hasUpvoted = false;
+  hasDownvoted = false;
+
   // @AfterLoad()
-  // setJsonProps() {
-  //   if (this.type === PostType.ANSWER) {
-  //     this.title = this.parent?.content;
-  //   } else if (this.type === PostType.QUESTION) {
-  //     this.title = this.content;
-  //     if (this.parent === null) {
-  //       this.content = '';
-  //     }
-  //   }
+  // setProps() {
+
   // }
 }
