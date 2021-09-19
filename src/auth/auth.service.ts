@@ -41,7 +41,11 @@ export class AuthService {
     let localUser;
     try {
       const username = user.username || user.email.split('@')[0];
-      localUser = await this.userService.findOneByUsername(username);
+      localUser = await this.userService.findOneByUsername(
+        username,
+        false,
+        true,
+      );
     } catch (error) {
       // User not found let's create it
       const firstName = user.firstName || user.name.split(' ')[0];

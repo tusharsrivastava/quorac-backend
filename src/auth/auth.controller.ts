@@ -35,7 +35,8 @@ export class AuthController {
         return await this.authService.loginOrRegister(req.user);
       }
       return this.authService.login(req.user);
-    } catch {
+    } catch (err) {
+      console.error(err);
       throw new HttpException('Invalid Credentials', HttpStatus.NOT_FOUND);
     }
   }
