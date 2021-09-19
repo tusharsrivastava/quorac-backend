@@ -30,6 +30,7 @@ export class AuthController {
   @HttpCode(200)
   async login(@Request() req) {
     try {
+      console.log('request user', req.user);
       if (req.user && req.user.isSocial) {
         return await this.authService.loginOrRegister(req.user);
       }
