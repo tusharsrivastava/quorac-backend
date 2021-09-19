@@ -16,35 +16,31 @@ export class CategoryFollowSubscriber
 
   async afterInsert(e: InsertEvent<CategoryFollower>) {
     console.log('After Insert');
-    try {
-      e.entity.category.followers = Math.max(
-        0,
-        e.entity.category.followers + 1,
-      );
-      if (isNaN(e.entity.category.followers)) {
-        e.entity.category.followers = 1;
-      }
-    } catch {
-      e.entity.category.followers = 1;
-    }
-    const repo = e.connection.getRepository(Category);
-    await repo.save(e.entity.category);
+    const conn = e.connection;
+    await conn
+      .createQueryBuilder()
+      .update(Category)
+      .set({
+        followers: () => 'followers + 1',
+      })
+      .where('category.id = :id', { id: e.entity.category.id })
+      .execute();
   }
 
   async beforeRemove(e: RemoveEvent<CategoryFollower>) {
     console.log('Before Insert');
-    try {
-      e.entity.category.followers = Math.max(
-        0,
-        e.entity.category.followers - 1,
-      );
-      if (isNaN(e.entity.category.followers)) {
-        e.entity.category.followers = 0;
-      }
-    } catch {
-      e.entity.category.followers = 0;
+    const conn = e.connection;
+    let rawQuery = 'followers - 1';
+    if (e.entity.category.followers == 0) {
+      rawQuery = '0';
     }
-    const repo = e.connection.getRepository(Category);
-    await repo.save(e.entity.category);
+    await conn
+      .createQueryBuilder()
+      .update(Category)
+      .set({
+        followers: () => rawQuery,
+      })
+      .where('category.id = :id', { id: e.entity.category.id })
+      .execute();
   }
 }

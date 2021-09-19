@@ -80,11 +80,10 @@ export class CategoriesService {
 
   async toggleFollow(id: number) {
     const user = await this.currentUser;
+    let category = await this.repo.findOne(id);
 
     const categoryFollwer = await this.categoryFollowerRepo.findOne({
-      category: {
-        id,
-      },
+      category: category,
       user: user,
     });
 
@@ -94,13 +93,14 @@ export class CategoriesService {
       await this.categoryFollowerRepo.remove(categoryFollwer);
     } else {
       const categoryFollwer = this.categoryFollowerRepo.create({
-        category: { id },
+        category: category,
         user: user,
       });
       await this.categoryFollowerRepo.save(categoryFollwer);
       isFollowed = true;
     }
-    const category = await this.repo.findOne(id);
+
+    category = await this.repo.findOne(id);
     return {
       ...category,
       isFollowed,

@@ -6,8 +6,10 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  ManyToOne,
   OneToOne,
   PrimaryGeneratedColumn,
+  Unique,
   UpdateDateColumn,
 } from 'typeorm';
 import * as bcrypt from 'bcrypt';
@@ -67,6 +69,8 @@ export class User extends BaseEntity {
   updatedAt: Date;
 
   updatePassword = false;
+  isFollowed: false;
+  isMe: false;
 
   async isValidPassword(plainPassword: string) {
     return await bcrypt.compare(plainPassword, this.password);
@@ -89,4 +93,25 @@ export class User extends BaseEntity {
       this.password = await bcrypt.hash(this.password, saltOrRounds);
     }
   }
+}
+
+@Entity()
+@Unique('user_follow_unique', ['user', 'followed'])
+export class UserFollower {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @ManyToOne(() => User, { eager: true })
+  @JoinColumn()
+  user: User;
+
+  @ManyToOne(() => User, { eager: true })
+  @JoinColumn()
+  followed: User;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

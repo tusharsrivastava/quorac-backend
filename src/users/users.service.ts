@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Scope } from '@nestjs/common';
 import { ILike, Repository } from 'typeorm';
 import { SALT_OR_ROUNDS } from 'src/global.constants';
-import { User } from './entities/user.entity';
+import { User, UserFollower } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ProfileDto, UpdateProfileDto } from './dto/profile.dto';
@@ -14,14 +14,20 @@ import {
   School,
   WorkInfo,
 } from './entities/profile.entity';
+import { REQUEST } from '@nestjs/core';
+import { Request } from 'express';
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class UsersService {
   readonly saltOrRounds = SALT_OR_ROUNDS;
 
   constructor(
+    @Inject(REQUEST)
+    private readonly req: Request,
     @InjectRepository(User)
     private readonly repo: Repository<User>,
+    @InjectRepository(UserFollower)
+    private readonly followerRepo: Repository<UserFollower>,
     @InjectRepository(Profile)
     private readonly profileRepo: Repository<Profile>,
     @InjectRepository(WorkInfo)
@@ -37,6 +43,15 @@ export class UsersService {
     @InjectRepository(Hobby)
     private readonly hobbyRepo: Repository<Hobby>,
   ) {}
+
+  get currentUser() {
+    try {
+      const { username } = (this.req as any).user;
+      return this.findOneByUsername(username, false, true);
+    } catch (e) {
+      return this.findOneByUsername('anonymous', false, true);
+    }
+  }
 
   async createOne(user: CreateUserDto): Promise<User | undefined> {
     const userEntity: User = this.repo.create(user);
@@ -62,19 +77,35 @@ export class UsersService {
   async findOneByUsername(
     username: string,
     fetchPassword = false,
-  ): Promise<User | undefined> {
+    noFollowCheck = false,
+  ): Promise<any | undefined> {
     if (fetchPassword) {
       return this.repo.findOneOrFail({
         select: ['id', 'username', 'password'],
         where: { username },
       });
     }
-    return this.repo.findOneOrFail({
+    const user = await this.repo.findOneOrFail({
       relations: ['profile'],
       where: {
         username: username,
       },
     });
+    if (!noFollowCheck) {
+      const me = await this.currentUser;
+      console.log('me', me);
+      console.log('user', user);
+      const followedCheck = await this.followerRepo.findOne({
+        where: { user: me, followed: user },
+      });
+      console.log('followerCheck', followedCheck);
+      return {
+        ...user,
+        isFollowed: followedCheck !== undefined,
+        isMe: me.id === user.id,
+      };
+    }
+    return { ...user, isFollowed: false, isMe: true };
   }
 
   async findOneById(id: string): Promise<User | undefined> {
@@ -243,5 +274,26 @@ export class UsersService {
       take: limit,
     });
     return data;
+  }
+
+  async toggleFollow(username: string) {
+    const user = await this.findOneByUsername(username);
+    const me = await this.currentUser;
+
+    if (user.isFollowed) {
+      const userFollwer = await this.followerRepo.findOne({
+        followed: user,
+        user: me,
+      });
+      await this.followerRepo.remove(userFollwer);
+    } else {
+      const userFollwer = this.followerRepo.create({
+        followed: user,
+        user: me,
+      });
+      await this.followerRepo.save(userFollwer);
+    }
+
+    return await this.findOneByUsername(username);
   }
 }

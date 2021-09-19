@@ -38,35 +38,78 @@ export class PostActionSubscriber
     return PostAction;
   }
 
-  afterInsert(event: InsertEvent<PostAction>) {
+  async afterInsert(event: InsertEvent<PostAction>) {
     const newAction = event.entity;
     if (newAction.actionType === ActionType.UPVOTE) {
-      newAction.post.upvotes = Math.max(0, (newAction.post.upvotes || 0) + 1);
+      const conn = event.connection;
+      await conn
+        .createQueryBuilder()
+        .update(Post)
+        .set({
+          upvotes: () => 'upvotes + 1',
+        })
+        .where('post.id = :id', { id: newAction.post.id })
+        .execute();
+      // newAction.post.upvotes = Math.max(0, (newAction.post.upvotes || 0) + 1);
     } else if (newAction.actionType === ActionType.DOWNVOTE) {
-      newAction.post.downvotes = Math.max(
-        0,
-        (newAction.post.downvotes || 0) + 1,
-      );
+      const conn = event.connection;
+      await conn
+        .createQueryBuilder()
+        .update(Post)
+        .set({
+          downvotes: () => 'downvotes + 1',
+        })
+        .where('post.id = :id', { id: newAction.post.id })
+        .execute();
+      // newAction.post.downvotes = Math.max(
+      //   0,
+      //   (newAction.post.downvotes || 0) + 1,
+      // );
     }
-    const repo = event.manager.getRepository(Post);
-    repo.save(newAction.post);
+    // const repo = event.manager.getRepository(Post);
+    // repo.save(newAction.post);
   }
 
-  beforeRemove(event: RemoveEvent<PostAction>) {
+  async beforeRemove(event: RemoveEvent<PostAction>) {
     const deletedAction = event.entity;
     if (deletedAction.actionType === ActionType.UPVOTE) {
-      deletedAction.post.upvotes = Math.max(
-        0,
-        (deletedAction.post.upvotes || 0) - 1,
-      );
+      let rawQuery = 'upvotes - 1';
+      if (deletedAction.post.upvotes == 0) {
+        rawQuery = '0';
+      }
+      const conn = event.connection;
+      await conn
+        .createQueryBuilder()
+        .update(Post)
+        .set({
+          upvotes: () => rawQuery,
+        })
+        .where('post.id = :id', { id: deletedAction.post.id })
+        .execute();
+      // deletedAction.post.upvotes = Math.max(
+      //   0,
+      //   (deletedAction.post.upvotes || 0) - 1,
+      // );
     } else if (deletedAction.actionType === ActionType.DOWNVOTE) {
-      deletedAction.post.downvotes = Math.max(
-        0,
-        (deletedAction.post.downvotes || 0) - 1,
-      );
+      let rawQuery = 'downvotes - 1';
+      if (deletedAction.post.upvotes == 0) {
+        rawQuery = '0';
+      }
+      const conn = event.connection;
+      await conn
+        .createQueryBuilder()
+        .update(Post)
+        .set({
+          downvotes: () => rawQuery,
+        })
+        .where('post.id = :id', { id: deletedAction.post.id })
+        .execute();
+      // deletedAction.post.downvotes = Math.max(
+      //   0,
+      //   (deletedAction.post.downvotes || 0) - 1,
+      // );
     }
-
-    const repo = event.manager.getRepository(Post);
-    repo.save(deletedAction.post);
+    // const repo = event.manager.getRepository(Post);
+    // repo.save(deletedAction.post);
   }
 }

@@ -10,6 +10,7 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { AllowAnonymous } from 'src/auth/auth.decorators';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { ProfileDto, UpdateProfileDto } from './dto/profile.dto';
 import { UsersService } from './users.service';
@@ -26,6 +27,8 @@ export class UsersController {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...user } = await this.userService.findOneByUsername(
         req.user.username,
+        false,
+        true,
       );
       return user;
     } catch {
@@ -40,7 +43,11 @@ export class UsersController {
     @Body() profileDto: ProfileDto | UpdateProfileDto,
   ) {
     try {
-      const user = await this.userService.findOneByUsername(req.user.username);
+      const user = await this.userService.findOneByUsername(
+        req.user.username,
+        false,
+        true,
+      );
       return await this.userService.createProfile(user.id, profileDto);
     } catch (err) {
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -83,7 +90,19 @@ export class UsersController {
     return await this.userService.listLanguages({ term, page, limit });
   }
 
+  @Post(':username/follow/toggle')
+  @UseGuards(JwtAuthGuard)
+  async toggleFollow(@Param('username') username: string) {
+    try {
+      return await this.userService.toggleFollow(username);
+    } catch (err) {
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   @Get(':username')
+  @UseGuards(JwtAuthGuard)
+  @AllowAnonymous()
   async profileByUsername(@Param('username') username: string) {
     return await this.userService.findOneByUsername(username);
   }

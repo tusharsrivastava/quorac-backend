@@ -9,7 +9,7 @@ import {
   School,
   WorkInfo,
 } from './entities/profile.entity';
-import { User } from './entities/user.entity';
+import { User, UserFollower } from './entities/user.entity';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 
@@ -17,6 +17,7 @@ import { UsersService } from './users.service';
   imports: [
     TypeOrmModule.forFeature([
       User,
+      UserFollower,
       Profile,
       School,
       Company,
