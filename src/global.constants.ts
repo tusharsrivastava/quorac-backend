@@ -1,6 +1,6 @@
 export const jwtConstants = {
   secret: process.env.SECRET_KEY || 'mysupersecretkey',
-  expiresIn: '1d',
+  expiresIn: '15d',
   issuer: 'saas-rbac',
 };
 

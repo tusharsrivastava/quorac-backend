@@ -29,16 +29,43 @@ export class PostsController {
     return this.service.create(createPostDto);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @AllowAnonymous()
   @Get()
   findAll(@Query('page') page: number, @Query('limit') limit: number) {
     return this.service.findAll({ page, limit });
   }
 
-  @Get('trending')
-  findTrending(@Query('page') page: number, @Query('limit') limit: number) {
-    return this.service.findTrending({ page, limit });
+  @UseGuards(JwtAuthGuard)
+  @AllowAnonymous()
+  @Get('search')
+  search(
+    @Query('term') term: string,
+    @Query('page') page: number,
+    @Query('limit') limit: number,
+  ) {
+    return this.service.search({ term, page, limit });
   }
 
+  @UseGuards(JwtAuthGuard)
+  @AllowAnonymous()
+  @Get('trending')
+  findTrending(
+    @Query('category') category: string,
+    @Query('subcategories') subcategories: string,
+    @Query('page') page: number,
+    @Query('limit') limit: number,
+  ) {
+    return this.service.findTrending({
+      page,
+      limit,
+      category,
+      subcategories: subcategories ? subcategories.split(',') : [],
+    });
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @AllowAnonymous()
   @Get('trending/:type')
   findTrendingByType(
     @Param('type') type: PostType,
@@ -54,6 +81,8 @@ export class PostsController {
     return this.service.findByUser({ page, limit });
   }
 
+  @UseGuards(JwtAuthGuard)
+  @AllowAnonymous()
   @Get('type/:type')
   findByType(
     @Param('type') type: PostType,
@@ -70,6 +99,8 @@ export class PostsController {
     });
   }
 
+  @UseGuards(JwtAuthGuard)
+  @AllowAnonymous()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.service.findOne(id);
@@ -115,6 +146,8 @@ export class PostsController {
     return this.service.remove(id);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @AllowAnonymous()
   @Get(':id/comments')
   getComments(
     @Param('id') postId: string,

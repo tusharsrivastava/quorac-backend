@@ -1,4 +1,3 @@
-import { maxHeaderSize } from 'http';
 import {
   EntitySubscriberInterface,
   EventSubscriber,

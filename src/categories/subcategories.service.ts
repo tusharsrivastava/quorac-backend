@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { CreateSubCategoryDto } from './dto/create-subcategory.dto';
 import { UpdateSubCategoryDto } from './dto/update-subcategory.dto';
 import { SubCategory } from './entities/subcategory.entity';
@@ -52,6 +52,12 @@ export class SubCategoriesService {
   async findByCategoryKey(categoryKey: string) {
     return await this.repo.find({
       where: { category: { key: categoryKey } },
+    });
+  }
+
+  async findManyByKeys(keys: string[]) {
+    return await this.repo.find({
+      where: { key: In(keys) },
     });
   }
 

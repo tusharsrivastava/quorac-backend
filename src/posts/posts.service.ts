@@ -1,9 +1,9 @@
-import { Inject, Injectable, Scope } from '@nestjs/common';
+import { Inject, Injectable, Query, Scope } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { Request } from 'express';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UsersService } from 'src/users/users.service';
-import { In, Not, Repository } from 'typeorm';
+import { Brackets, In, Not, Repository } from 'typeorm';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Post, PostType } from './entities/post.entity';
@@ -14,6 +14,8 @@ import slugify from 'slugify';
 import { ActionType } from './post.enums';
 import { PostAction } from './entities/post.action.entity';
 import { CommentAction } from './entities/comment.action.entity';
+// import { CategoriesService } from 'src/categories/categories.service';
+import { SubCategoriesService } from 'src/categories/subcategories.service';
 
 @Injectable({ scope: Scope.REQUEST })
 export class PostsService {
@@ -30,12 +32,13 @@ export class PostsService {
     private readonly req: Request,
     private readonly userService: UsersService,
     private readonly authService: AuthService,
+    private readonly subcategoryService: SubCategoriesService,
   ) {}
 
   get currentUser() {
     try {
-      const { id } = (this.req as any).user;
-      return this.userService.findOneById(id);
+      const { username } = (this.req as any).user;
+      return this.userService.findOneByUsername(username);
     } catch (e) {
       return this.authService.AnonymousUser;
     }
@@ -60,13 +63,16 @@ export class PostsService {
 
   async addPostActions(posts: Post[]) {
     const currentUser = await this.currentUser;
-    // Find all post actions by this user for these posts
+
     const actions = await this.pActionRepo.find({
       where: {
         user: currentUser,
-        post: In(posts.map((e) => e.id)),
+        post: {
+          id: In(posts.map((e) => e.id)),
+        },
       },
     });
+
     // map all posts to an object and update hasUpvoted and hasDownvoted
     const actionsMap = actions.reduce((acc, curr) => {
       acc[`${curr.post.id}:${curr.actionType}`] = curr;
@@ -86,7 +92,9 @@ export class PostsService {
     const actions = await this.cActionRepo.find({
       where: {
         user: currentUser,
-        comment: In(comments.map((e) => e.id)),
+        comment: {
+          id: In(comments.map((e) => e.id)),
+        },
       },
     });
     // map all posts to an object and update hasUpvoted and hasDownvoted
@@ -100,6 +108,35 @@ export class PostsService {
         actionsMap[`${e.id}:${ActionType.DOWNVOTE}`] !== undefined;
       return e;
     });
+  }
+
+  async search({ term = '', page = 1, limit = 50 } = {}) {
+    const q = `%${(term || '').trim()}%`;
+    const query = this.repo
+      .createQueryBuilder('post')
+      .distinct()
+      .leftJoin('post.category', 'category')
+      .leftJoin('post.subcategories', 'subcategories')
+      .where('post.title LIKE :term', { term: q })
+      .orWhere('post.content LIKE :term', { term: q })
+      .orWhere('category.name LIKE :term', { term: q })
+      .orWhere('subcategories.name LIKE :term', { term: q })
+      .andWhere(
+        new Brackets((q) => {
+          return q
+            .where('post.type = :type', { type: PostType.QUESTION })
+            .andWhere('post.numAssociatedPosts > 0');
+        }),
+      )
+      .limit(limit)
+      .offset((page - 1) * limit)
+      .orderBy('post.createdAt', 'DESC');
+
+    const [data, count] = await query.getManyAndCount();
+
+    console.log(query.getQueryAndParameters());
+
+    return { data: data || [], count: count };
   }
 
   async findAll({ page = 1, limit = 50 } = {}) {
@@ -118,20 +155,52 @@ export class PostsService {
     };
   }
 
-  async findTrending({ page = 1, limit = 50 } = {}) {
-    const [result, total] = await this.repo.findAndCount({
-      relations: ['parent'],
-      where: {
-        type: Not(PostType.QUESTION),
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-      order: {
-        numLikes: 'DESC',
-        upvotes: 'DESC',
-        createdAt: 'DESC',
-      },
-    });
+  async findTrending({
+    page = 1,
+    limit = 50,
+    category = null,
+    subcategories = [],
+  } = {}) {
+    // Let's write our custom query using typeorm
+    const query = this.repo.createQueryBuilder('post');
+    query
+      .leftJoinAndSelect('post.parent', 'parent')
+      .leftJoinAndSelect('parent.createdBy', 'parent_createdBy')
+      .leftJoinAndSelect('post.createdBy', 'createdBy')
+      .leftJoinAndSelect('post.category', 'category')
+      .leftJoinAndSelect('post.subcategories', 'subcategory')
+      .where('post.type != :type', { type: PostType.QUESTION });
+
+    if (category !== null) {
+      query.andWhere('category.key = :cat', { cat: category });
+    }
+
+    if (subcategories.length > 0) {
+      query.andWhere('subcategory.key IN (:...sk)', { sk: subcategories });
+    }
+
+    query
+      .limit(limit)
+      .offset((page - 1) * limit)
+      .orderBy('post.numLikes', 'DESC')
+      .orderBy('post.upvotes', 'DESC')
+      .orderBy('post.createdAt', 'DESC');
+
+    const [result, total] = await query.getManyAndCount();
+
+    // const [result, total] = await this.repo.findAndCount({
+    //   relations: ['parent'],
+    //   where: {
+    //     type: Not(PostType.QUESTION),
+    //   },
+    //   skip: (page - 1) * limit,
+    //   take: limit,
+    //   order: {
+    //     numLikes: 'DESC',
+    //     upvotes: 'DESC',
+    //     createdAt: 'DESC',
+    //   },
+    // });
 
     return {
       data: await this.addPostActions(result),
@@ -205,63 +274,44 @@ export class PostsService {
     type: PostType,
     { page = 1, limit = 50, category = null, subcategories = [] } = {},
   ) {
-    let whereClause: any = {
-      type,
-    };
-
-    if (type === PostType.ANSWER) {
-      whereClause = [
-        {
-          type: PostType.ANSWER,
-        },
-        {
-          type: PostType.QUESTION,
-          numAssociatedPosts: 0,
-        },
-      ];
-    }
+    // Let's write our custom query using typeorm
+    const query = this.repo.createQueryBuilder('post');
+    query
+      .leftJoinAndSelect('post.parent', 'parent')
+      .leftJoinAndSelect('parent.createdBy', 'parent_createdBy')
+      .leftJoinAndSelect('post.createdBy', 'createdBy')
+      .leftJoinAndSelect('post.category', 'category')
+      .leftJoinAndSelect('post.subcategories', 'subcategory')
+      .where(
+        new Brackets((oq) => {
+          oq.where('post.type = :type', { type });
+          if (type === PostType.ANSWER) {
+            oq.orWhere(
+              new Brackets((q) =>
+                q
+                  .where('post.numAssociatedPosts = 0')
+                  .andWhere('post.type = :type2', { type2: PostType.QUESTION }),
+              ),
+            );
+          }
+          return oq;
+        }),
+      );
 
     if (category !== null) {
-      if (Array.isArray(whereClause)) {
-        whereClause = whereClause.map((clause) => ({
-          ...clause,
-          category: {
-            key: category,
-          },
-        }));
-      } else {
-        whereClause['category'] = {
-          key: category,
-        };
-      }
+      query.andWhere('category.key = :cat', { cat: category });
     }
 
-    // if (subcategories.length > 0) {
-    //   if (Array.isArray(whereClause)) {
-    //     whereClause = whereClause.map((clause) => ({
-    //       ...clause,
-    //       subcategories: {
-    //         key: In(subcategories),
-    //       },
-    //     }));
-    //   } else {
-    //     whereClause['subcategories'] = {
-    //       key: In(subcategories),
-    //     };
-    //   }
-    // }
+    if (subcategories.length > 0) {
+      query.andWhere('subcategory.key IN (:...sk)', { sk: subcategories });
+    }
 
-    console.log(whereClause);
+    query
+      .limit(limit)
+      .offset((page - 1) * limit)
+      .orderBy('post.createdAt', 'DESC');
 
-    const [result, total] = await this.repo.findAndCount({
-      relations: ['parent'],
-      where: whereClause,
-      skip: (page - 1) * limit,
-      take: limit,
-      order: {
-        createdAt: 'DESC',
-      },
-    });
+    const [result, total] = await query.getManyAndCount();
 
     return {
       data: await this.addPostActions(result),

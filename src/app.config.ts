@@ -71,7 +71,7 @@ export class AppConfig {
             migrationsDir: 'dist/migrations',
           },
           synchronize: true,
-          logging: configService.get<boolean>('DB_LOGGING'),
+          logging: false, //configService.get<boolean>('DB_LOGGING'),
         };
       },
     };
@@ -94,7 +94,7 @@ export class AppConfig {
         migrationsDir: 'src/migrations',
       },
       synchronize: true,
-      logging: this.env.DB_LOGGING,
+      logging: false, // this.env.DB_LOGGING,
     };
   }
 

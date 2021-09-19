@@ -5,11 +5,14 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { SALT_OR_ROUNDS } from 'src/global.constants';
+import { Profile } from './profile.entity';
 
 const saltOrRounds = SALT_OR_ROUNDS;
 
@@ -51,11 +54,19 @@ export class User extends BaseEntity {
   @Column({ default: false })
   isVerified: boolean;
 
+  @OneToOne(() => Profile, (profile) => profile.user, {
+    cascade: true,
+  })
+  @JoinColumn()
+  profile: Profile;
+
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  updatePassword = false;
 
   async isValidPassword(plainPassword: string) {
     return await bcrypt.compare(plainPassword, this.password);
@@ -74,6 +85,8 @@ export class User extends BaseEntity {
   }
 
   async updatePasswordHash() {
-    this.password = await bcrypt.hash(this.password, saltOrRounds);
+    if (this.updatePassword) {
+      this.password = await bcrypt.hash(this.password, saltOrRounds);
+    }
   }
 }

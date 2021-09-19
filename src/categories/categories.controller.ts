@@ -6,7 +6,10 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
+import { AllowAnonymous } from 'src/auth/auth.decorators';
+import { JwtAuthGuard } from 'src/auth/jwt.guard';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -30,11 +33,15 @@ export class CategoriesController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard)
+  @AllowAnonymous()
   findAll() {
     return this.service.findAll();
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  @AllowAnonymous()
   findOne(@Param('id') id: string) {
     return this.service.findOne(+id);
   }
@@ -50,5 +57,11 @@ export class CategoriesController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.service.remove(+id);
+  }
+
+  @Post(':id/follow/toggle')
+  @UseGuards(JwtAuthGuard)
+  async toggleFollow(@Param('id') id: string) {
+    return await this.service.toggleFollow(+id);
   }
 }
